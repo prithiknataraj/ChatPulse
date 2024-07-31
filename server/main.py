@@ -1,109 +1,91 @@
-from fastapi import FastAPI, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, EmailStr
-from bson import ObjectId
-from typing import List, Optional
-from datetime import datetime
+# app/main.py
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from crud import user as user_crud
+from crud import message as message_crud
+from crud import chat as chat_crud
+from models.user import User, UserInDB
+from models.message import Message, MessageInDB
+from models.chat import Chat, ChatInDB
+from pydantic import BaseModel
+from datetime import timedelta
+from typing import List
 
-# FastAPI initialization
+app = FastAPI()
 
-app= FastAPI()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# DataBase Connection
+class SignupModel(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    age: int
+    gender: str
+    password: str
+    language: str
 
-client= AsyncIOMotorClient("mongodb+srv://prithik:Indian@cluster0.gyp783r.mongodb.net/?retryWrites=true&w=majority&appName=cluster0")
-db= client.chatpulse
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    prithik: str
 
-# Pydantic Models
-# User
+class TokenData(BaseModel):
+    email: str
 
-class User(BaseModel):
-    username : str
-    email : EmailStr
-    password : str
-    
-class UserInDB(User):
-    id : str
-    
-# Message
-    
-class Message(BaseModel):
-    sender_id : str
-    receiver_id : str
-    content : str
-    time_stamp : str
-    chat_id : str
-    
-class MessageInDB(Message):
-    id : str
-    
-# Chat
-    
-class Chat(BaseModel):
-    participants_id : List[str]
-    is_group : bool = False
-    group_name : str = None
-    
-class ChatInDB(Chat):
-    id : str
+@app.post("/signup/", response_model=UserInDB)
+async def signup(user: SignupModel):
+    existing_user = await user_crud.get_user_by_email(user.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    new_user = User(first_name= user.first_name, last_name= user.last_name, email=user.email, age= user.age, gender= user.gender, language= user.language, password=user.password)
+    return await user_crud.create_user(new_user)
 
-# CRUD Operations
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await user_crud.get_user_by_email(form_data.username)
+    if not user or not user_crud.verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=400,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=user_crud.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = user_crud.create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer", "prithik": "nee mass da"}
 
 # User operations
 @app.post("/users/", response_model=UserInDB)
 async def create_user(user: User):
-    user_dict = user.dict()
-    result = await db.users.insert_one(user_dict)
-    user_in_db = UserInDB(id=str(result.inserted_id), **user_dict)
-    return user_in_db
+    return await user_crud.create_user(user)
 
 @app.get("/users/{user_id}", response_model=UserInDB)
 async def read_user(user_id: str):
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return UserInDB(id=str(user["_id"]), **user)
+    return await user_crud.read_user(user_id)
 
 # Chat operations
 @app.post("/chats/", response_model=ChatInDB)
 async def create_chat(chat: Chat):
-    chat_dict = chat.dict()
-    result = await db.chats.insert_one(chat_dict)
-    chat_in_db = ChatInDB(id=str(result.inserted_id), **chat_dict)
-    return chat_in_db
+    return await chat_crud.create_chat(chat)
 
 @app.get("/chats/{chat_id}", response_model=ChatInDB)
 async def read_chat(chat_id: str):
-    chat = await db.chats.find_one({"_id": ObjectId(chat_id)})
-    if chat is None:
-        raise HTTPException(status_code=404, detail="Chat not found")
-    return ChatInDB(id=str(chat["_id"]), **chat)
+    return await chat_crud.read_chat(chat_id)
 
 @app.get("/chats/", response_model=List[ChatInDB])
 async def list_chats():
-    chats = []
-    async for chat in db.chats.find():
-        chats.append(ChatInDB(id=str(chat["_id"]), **chat))
-    return chats
+    return await chat_crud.list_chats()
 
 # Message operations
 @app.post("/messages/", response_model=MessageInDB)
 async def send_message(message: Message):
-    message_dict = message.dict()
-    result = await db.messages.insert_one(message_dict)
-    message_in_db = MessageInDB(id=str(result.inserted_id), **message_dict)
-    return message_in_db
+    return await message_crud.send_message(message)
 
 @app.get("/messages/{chat_id}", response_model=List[MessageInDB])
 async def list_messages(chat_id: str):
-    messages = []
-    async for message in db.messages.find({"chat_id": chat_id}):
-        messages.append(MessageInDB(id=str(message["_id"]), **message))
-    return messages
+    return await message_crud.list_messages(chat_id)
 
 @app.delete("/messages/{message_id}")
 async def delete_message(message_id: str):
-    result = await db.messages.delete_one({"_id": ObjectId(message_id)})
-    if result.deleted_count == 1:
-        return {"message": "Message deleted"}
-    raise HTTPException(status_code=404, detail="Message not found")
+    return await message_crud.delete_message(message_id)
