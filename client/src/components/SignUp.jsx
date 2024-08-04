@@ -26,7 +26,7 @@ const SignUp = () => {
         password,
         language,
       });
-      alert(response.data.message);
+      console.log("Signup successful")
       navigate('/home');
     } catch (error) {
       if (error.response && error.response.data) {
@@ -112,10 +112,10 @@ const SignUp = () => {
         >
           <option value="" disabled>Select Language</option>
           <option value="English">English</option>
-          <option value="Spanish">Spanish</option>
-          <option value="French">French</option>
-          <option value="German">German</option>
-          <option value="Chinese">Chinese</option>
+          <option value="Hindi">Hindi</option>
+          <option value="Malayalam">Malayalam</option>
+          <option value="Tamil">Tamil</option>
+          <option value="Telugu">Telugu</option>
         </select>
       </div>
 
