@@ -6,6 +6,7 @@ from models.user import User, UserInDB
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from typing import List
 
 SECRET_KEY = "b0b3beeb80245637bb4174d578d6f8fdefcb4b92758b604f6f10472956741584"
 ALGORITHM = "HS256"
@@ -44,3 +45,19 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+async def list_users() -> List[UserInDB]:
+    users = []
+    async for user in db.users.find():
+        user_dict = {
+            'id': str(user['_id']),
+            'first_name': user.get('first_name', ''), 
+            'last_name': user.get('last_name', ''),
+            'email': user.get('email', ''),
+            'age': user.get('age', 0),
+            'gender': user.get('gender', ''),
+            'language': user.get('language', ''),
+            'password': user.get('password', '')
+        }
+        users.append(UserInDB(**user_dict))
+    return users

@@ -27,8 +27,6 @@ class SignupModel(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-    prithik: str
-
 class TokenData(BaseModel):
     email: str
 
@@ -37,7 +35,15 @@ async def signup(user: SignupModel):
     existing_user = await user_crud.get_user_by_email(user.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    new_user = User(first_name= user.first_name, last_name= user.last_name, email=user.email, age= user.age, gender= user.gender, language= user.language, password=user.password)
+    new_user = User(
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+        age=user.age,
+        gender=user.gender,
+        language=user.language,
+        password=user.password
+    )
     return await user_crud.create_user(new_user)
 
 @app.post("/token", response_model=Token)
@@ -53,7 +59,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = user_crud.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer", "prithik": "nee mass da"}
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # User operations
 @app.post("/users/", response_model=UserInDB)
@@ -63,6 +69,10 @@ async def create_user(user: User):
 @app.get("/users/{user_id}", response_model=UserInDB)
 async def read_user(user_id: str):
     return await user_crud.read_user(user_id)
+
+@app.get("/users/", response_model=List[UserInDB])
+async def get_users():
+    return await user_crud.list_users()
 
 # Chat operations
 @app.post("/chats/", response_model=ChatInDB)

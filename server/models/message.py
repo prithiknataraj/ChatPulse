@@ -1,12 +1,12 @@
-# app/models/message.py
 from pydantic import BaseModel
+from typing import Optional
 
 class Message(BaseModel):
     sender_id: str
     receiver_id: str
     content: str
-    time_stamp: str
     chat_id: str
+    time_stamp: Optional[str] = None
 
 class MessageInDB(Message):
     id: str
