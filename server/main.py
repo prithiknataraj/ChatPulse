@@ -1,5 +1,6 @@
 # app/main.py
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from crud import user as user_crud
 from crud import message as message_crud
@@ -12,6 +13,14 @@ from datetime import timedelta
 from typing import List
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -32,19 +41,22 @@ class TokenData(BaseModel):
 
 @app.post("/signup/", response_model=UserInDB)
 async def signup(user: SignupModel):
-    existing_user = await user_crud.get_user_by_email(user.email)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    new_user = User(
-        first_name=user.first_name,
-        last_name=user.last_name,
-        email=user.email,
-        age=user.age,
-        gender=user.gender,
-        language=user.language,
-        password=user.password
-    )
-    return await user_crud.create_user(new_user)
+    try:
+        existing_user = await user_crud.get_user_by_email(user.email)
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        new_user = User(
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=user.email,
+            age=user.age,
+            gender=user.gender,
+            language=user.language,
+            password=user.password
+        )
+        return await user_crud.create_user(new_user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
