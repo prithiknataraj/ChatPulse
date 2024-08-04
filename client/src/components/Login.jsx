@@ -12,9 +12,14 @@ const Login = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post(`${API_BASE_URL}/token`, {
-                username,
-                password
+            const formData = new URLSearchParams();
+            formData.append("username", username);
+            formData.append("password", password);
+    
+            const response = await axios.post(`${API_BASE_URL}/token`, formData, {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
             });
             localStorage.setItem("access_token", response.data.access_token);
             navigate("/home");
@@ -26,6 +31,7 @@ const Login = () => {
             }
         }
     };
+    
 
     return (
         <form onSubmit={handleLogin}>

@@ -36,6 +36,7 @@ class SignupModel(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    
 class TokenData(BaseModel):
     email: str
 
@@ -64,10 +65,13 @@ async def signup(user: SignupModel):
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    print("working")
     try:
         user = await user_crud.get_user_by_email(form_data.username)
         
-        if not user or not user_crud.verify_password(form_data.password, user.hashed_password):
+        print(user)
+        
+        if not user or not user_crud.verify_password(form_data.password, user.password):
             raise HTTPException(
                 status_code=401,
                 detail="Incorrect username or password",
