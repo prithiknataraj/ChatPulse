@@ -54,7 +54,9 @@ async def signup(user: SignupModel):
             language=user.language,
             password=user.password
         )
-        return await user_crud.create_user(new_user)
+        await user_crud.create_user(new_user)
+        return {"message": "User created successfully"}
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

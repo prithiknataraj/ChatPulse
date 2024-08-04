@@ -1,48 +1,58 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
+import { useNavigate } from 'react-router-dom';
 
 const SignUp = () => {
-  const [first_name, setfirst_name] = useState('');
-  const [last_name, setlast_name] = useState('');
+  const [first_name, setFirstName] = useState('');
+  const [last_name, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [age, setage] = useState('');
-  const [gender, setgender] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
   const [password, setPassword] = useState('');
-  const [language, setlanguage] = useState('');
+  const [language, setLanguage] = useState('');
+  const [errorMessage, setErrorMessage] = useState(''); 
+  const navigate = useNavigate();
 
   const handleSignUp = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://127.0.0.1:8000/signup/', {  // Ensure trailing slash matches backend
+      const response = await axios.post(`${API_BASE_URL}/signup/`, {
         first_name,
         last_name,
         email,
-        age: parseInt(age),  // Convert to number if needed
+        age: parseInt(age),
         gender,
         password,
         language,
       });
-      alert(response.data.message); // Display success message from backend
+      alert(response.data.message);
+      navigate('/home');
     } catch (error) {
-      console.error("Sign-up error:", error.response ? error.response.data : error.message);
-      alert("There was an error signing up. Please try again.");
+      if (error.response && error.response.data) {
+        
+        setErrorMessage(error.response.data.detail || "There was an error signing up. Please try again.");
+      } else {
+        
+        setErrorMessage("There was an error signing up. Please try again.");
+      }
     }
   };
-  
+
   return (
     <form onSubmit={handleSignUp}>
       <input
         type="text"
         placeholder="First Name"
         value={first_name}
-        onChange={(e) => setfirst_name(e.target.value)}
+        onChange={(e) => setFirstName(e.target.value)}
         required
       />
       <input
         type="text"
         placeholder="Last Name"
         value={last_name}
-        onChange={(e) => setlast_name(e.target.value)}
+        onChange={(e) => setLastName(e.target.value)}
       />
       <input
         type="email"
@@ -52,19 +62,39 @@ const SignUp = () => {
         required
       />
       <input
-        type="int"
+        type="number"
         placeholder="Age"
         value={age}
-        onChange={(e) => setage(e.target.value)}
+        onChange={(e) => setAge(e.target.value)}
         required
       />
-      <input
-        type="text"
-        placeholder="Gender"
-        value={gender}
-        onChange={(e) => setgender(e.target.value)}
-        required
-      />
+
+      <div>
+        <label>Gender:</label>
+        <label>
+          <input
+            type="radio"
+            name="gender"
+            value="Male"
+            checked={gender === 'Male'}
+            onChange={(e) => setGender(e.target.value)}
+            required
+          />
+          Male
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="gender"
+            value="Female"
+            checked={gender === 'Female'}
+            onChange={(e) => setGender(e.target.value)}
+            required
+          />
+          Female
+        </label>
+      </div>
+
       <input
         type="password"
         placeholder="Password"
@@ -72,13 +102,25 @@ const SignUp = () => {
         onChange={(e) => setPassword(e.target.value)}
         required
       />
-      <input
-        type="text"
-        placeholder="Language"
-        value={language}
-        onChange={(e) => setlanguage(e.target.value)}
-        required
-      />
+
+      <div>
+        <label>Language:</label>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          required
+        >
+          <option value="" disabled>Select Language</option>
+          <option value="English">English</option>
+          <option value="Spanish">Spanish</option>
+          <option value="French">French</option>
+          <option value="German">German</option>
+          <option value="Chinese">Chinese</option>
+        </select>
+      </div>
+
+      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
+
       <button type="submit">Sign Up</button>
     </form>
   );

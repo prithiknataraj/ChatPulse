@@ -1,13 +1,16 @@
 import React from 'react';
-import SignUp from './components/SignUp';
+import { Routes, Route } from 'react-router-dom';
+import SignUp from './components/SignUp.jsx';
+import Home from './components/Home.jsx';
 
-function App() {
+const App = () => {
   return (
-    <div className="App">
-      <h1>Welcome to ChatPulse</h1>
-      <SignUp />
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/home" element={<Home />} />
+    </Routes>
   );
-}
+};
 
 export default App;
