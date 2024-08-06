@@ -1,4 +1,3 @@
-# app/crud/message.py
 from fastapi import HTTPException
 from bson import ObjectId
 from typing import List
