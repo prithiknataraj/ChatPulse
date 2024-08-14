@@ -12,8 +12,10 @@ const Chat = () => {
     const yourEmail = localStorage.getItem("user_email");
     setYourEmail(yourEmail);
 
-    const recipientEmail = prompt("Enter the email of the user you want to chat with:");
-    setRecipientEmail(recipientEmail);
+    if (!recipientEmail) {
+      const email = prompt("Enter the email of the user you want to chat with:");
+      setRecipientEmail(email);
+    }
 
     const ws = new WebSocket(`ws://localhost:8000/ws/${yourEmail}`);
 
@@ -23,10 +25,13 @@ const Chat = () => {
 
     ws.onmessage = (event) => {
       const encodedMessage = event.data;
-      // console.log("Received encoded message:", encodedMessage);
       const decodedMessage = decodeMessage(encodedMessage);
-      // console.log("Decoded message:", decodedMessage);
-      setMessages((prevMessages) => [...prevMessages, decodedMessage]);
+
+      // Assuming received messages are from the recipient
+      setMessages((prevMessages) => [
+        ...prevMessages, 
+        { text: decodedMessage, sender: 'received' }
+      ]);
     };
 
     ws.onerror = (error) => {
@@ -40,17 +45,25 @@ const Chat = () => {
     return () => {
       ws.close();
     };
-  }, []);
+  }, [yourEmail, recipientEmail]);
 
   const handleSend = () => {
     if (input.trim()) {
-      const formattedMessage = `${yourEmail}: ${input}`;
-      // console.log(`Sending message to ${recipientEmail}: ${input}`);
-      
-      setMessages((prevMessages) => [...prevMessages, formattedMessage]);
+      // Add the sent message to the chat log
+      setMessages((prevMessages) => [
+        ...prevMessages, 
+        { text: input, sender: 'sent' }
+      ]);
 
+      // Send the message to the server
       sendMessage(`${recipientEmail}:${input}`);
       setInput('');
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSend();
     }
   };
 
@@ -58,7 +71,12 @@ const Chat = () => {
     <div className="chat-container">
       <div className="chat-messages">
         {messages.map((msg, index) => (
-          <div key={index} className="chat-message">{msg}</div>
+          <div 
+            key={index} 
+            className={`chat-message ${msg.sender === 'sent' ? 'sent-message' : 'received-message'}`}
+          >
+            {msg.text}
+          </div>
         ))}
       </div>
       <div className="chat-input">
@@ -66,6 +84,7 @@ const Chat = () => {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}  // Handle Enter key press
           placeholder="Type a message..."
         />
         <button onClick={handleSend}>Send</button>
@@ -83,3 +102,9 @@ function decodeMessage(encodedMessage) {
 }
 
 export default Chat;
+
+
+
+
+
+
